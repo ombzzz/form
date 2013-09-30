@@ -2,8 +2,25 @@
 <script src="nedb.min.js"></script>
 <script src="jquery.js"></script>
 <style type="text/css"> 
+
+#h{
+	display:block;
+	width: 10px;
+	height: 10px;
+	border-radius: 1px;
+	position:fixed;
+	top:10px;
+	right:10px;
+	background: #eee;
+}
+#h:hover{
+	cursor:pointer;
+}
 .cont {
-	/*display: none;*/
+	display: none;
+	width: 80%;
+	height: 80%;
+	background-color: rgba( 140, 140, 140, .8 );
 	white-space: pre-wrap;
 	background: rgb( 200, 200, 200, .7 );
 	color: blue;
@@ -31,7 +48,11 @@ border: 1px solid;
 .square .botonera:hover{
 	cursor: pointer;
 }
+.square input{
+	font-size:7pt;
+}
 .log {
+	display: none;
 	position: fixed;
 	top: 0px;
 	right: 0px;
@@ -66,6 +87,8 @@ border: 1px solid;
 	z-index: 1;
 	background-opacity: .1;
 	color: black;
+	resize:none;
+	overflow: hidden;
 }
 
 .imagen {
@@ -74,9 +97,11 @@ border: 1px solid;
 </style> 
 
 <body> 
-<div class=cont>
-</div>
+<textarea class=cont>
+</textarea>
+<span id=h> </span>
 <div class=button>
+<span id=log>log</span>
 <span id=cont>cont</span>
 <span id=cargar>cargar</span>
 <span id=llenar>llenar</span>
@@ -84,23 +109,31 @@ border: 1px solid;
 <span id=print>print</span>
 </div><!--button-->
 <div class=canvas>
-<img width=100% class=imagen src=grilla-0_.png>
+<img class=imagen src=grilla-0_.png>
 </div>
 <div class=log>
 </div>
 </body> 
 <script> 
-$("#llenar").click( llenar );
-$("#save").click( save );
-$("#print").click( print );
+$("#h").click( function(){ 
+	$(".button").toggle( 500);
+});
 $("#cont").click( function(){ 
 	$(".cont").toggle( 500);
 });
+$("#log").click( function(){ 
+	$(".log").toggle( 500);
+});
+$("#cargar").click( cargar );
+$("#llenar").click( llenar );
+$("#save").click( save );
+$("#print").click( print );
 
 boxdb = new Nedb();   // Create an in-memory only datastore
 var lefttop;
 var wh;
 var dibujando = 0;
+var cant = 0;
 
 $( ".canvas").mousedown( function( ev ){
 	dibujando=1;
@@ -118,8 +151,12 @@ $( ".canvas").mouseup( function( ev ){
 	}
 });
 
+//-----------------------
+// usuariomarcocampo
+//-----------------------
 function usuariomarcocampo( ltx, whx ){
-	console.log( "umc: " +  ltx.x + " " + ltx.y + " " + whx.x + " " + whx.y );
+	loguear( "usuariomarcocampo " + ltx.x + " " + ltx.y );
+	cant++;
 
 	var idx = ltx.x + "-" + ltx.y + "-" + whx.x + "-" + whx.y;
 	d = $( "<div id="+idx+"><div class=botonera><span>x</div><input type=text size=20 value='" 
@@ -134,15 +171,18 @@ function usuariomarcocampo( ltx, whx ){
 		quehayenbase();
 	});
 
-	boxdb.insert( { lt: ltx, wh: whx, xxx: idx } );
+	boxdb.insert( { lt: ltx, wh: whx, xxx: idx, num: cant, tex: "" } );
 	quehayenbase();
 }
 
+//-----------------------
+// llenar
+//-----------------------
 function llenar(){
 	loguear( "llenar");
 	//para cada square, obtener su id, su nombre cargado y actualizar
 	// el nombre cargado usando el id como ubicador del documento en mongo
-	$( ".square").each( function(){
+	$( "div.square").each( function(){
 		var arr = this.id.split("-" );
 		var nomx = $(this).find( "input")[0].value;
 		loguear( "actualizando x y " + arr[0] + " " + arr[1])
@@ -159,8 +199,9 @@ function llenar(){
 	$(".square").remove();
 	boxdb.find( {}, function (err, docs) {
 		for( var i=0; i<docs.length; i++ ){
-			d = $( "<textarea></textarea>");
+			d = $( "<textarea>" + docs[i].tex + "</textarea>");
 			d.addClass( "square");
+			d.attr( 'tabindex', docs[i].num );
 			d.attr( 'id', docs[i].lt.x + "-" + docs[i].lt.y + "-" + docs[i].wh.x + "-" + docs[i].wh.y);
 			d.css( { "left": docs[i].lt.x + 'px' , "top" : docs[i].lt.y + 'px', "width" : docs[i].wh.x + 'px', "height" :docs[i].wh.y + 'px' });
 			$(".canvas").append( d );
@@ -169,14 +210,22 @@ function llenar(){
 
 }
 
+//-----------------------
+// quehayenbase
+//-----------------------
 function quehayenbase(){
 	boxdb.find( {}, function (err, docs) {
 		for( var i=0; i<docs.length; i++ ){
 			loguear( "-" + i + ": box en " + docs[i].lt.x + " " + docs[i].lt.y
-	  + " " + docs[i].wh.x + " " + docs[i].wh.y + " nom " + docs[i].nom + " xxx " + docs[i].xxx + "- ");
+	  		+ " " + docs[i].wh.x + " " + docs[i].wh.y + " nom " + docs[i].nom + " xxx " 
+	  		+ docs[i].xxx + " num " + docs[i].num + "- ");
 		}
  	});
 }
+
+//-----------------------
+// loguear
+//-----------------------
 function loguear( que, col ){
 	if( col ){
 		aux="style='color:" + col + "'";
@@ -185,12 +234,20 @@ function loguear( que, col ){
 	$( ".log" ).append( "<span " + aux + "> " + que + "</span>" );
 }
 
+//-----------------------
+// print
+//-----------------------
 function print(){
+	$( ".canvas").css( { "border": "0px" } );
 	$( ".canvas textarea").css( { "border": "0px" } );
+	$(".button").toggle( 500);
 }
 
+//-----------------------
+// save
+//-----------------------
 function save(){
-loguear( "save");
+	loguear( "<hr>save");
 	//para cada square, obtener su id, su contenido y actualizar en mongo
 	$( ".square").each( function(){
 		var arr = this.id.split("-" );
@@ -207,12 +264,35 @@ loguear( "save");
 	quehayenbase();
 	
 	boxdb.find( {}, function (err, docs) {
-		for( var i=0; i<docs.length; i++ ){
-			$(".cont").append( JSON.stringify(docs[i]) );
-		}
+		console.log( docs);
+		//for( var i=0; i<docs.length; i++ ){
+		$(".cont").val( JSON.stringify( docs ) );
+		//console.log( JSON.stringify( docs ));
+		//}
  	});
 }
 
+//-----------------------
+// cargar
+//-----------------------
+function cargar(){
+
+	var arr = JSON.parse( $(".cont").val());
+	boxdb.insert( arr );
+	quehayenbase();
+
+	boxdb.find( {}, function (err, docs) {
+		for( var i=0; i<docs.length; i++ ){
+			d = $( "<textarea>"+ docs[i].tex + "</textarea>");
+			d.addClass( "square");
+			d.attr( "tabindex", docs[i].num );
+			d.attr( 'id', docs[i].lt.x + "-" + docs[i].lt.y + "-" + docs[i].wh.x + "-" + docs[i].wh.y);
+			d.css( { "left": docs[i].lt.x + 'px' , "top" : docs[i].lt.y + 'px', "width" : docs[i].wh.x + 'px', "height" :docs[i].wh.y + 'px' });
+			$(".canvas").append( d );
+		}
+ 	});
+ 	$(".cont").toggle();
+}
 /*
 var d;
 var posx;
