@@ -1,0 +1,253 @@
+<html> 
+<script src="nedb.min.js"></script>
+<script src="jquery.js"></script>
+<style type="text/css"> 
+.cont {
+	/*display: none;*/
+	white-space: pre-wrap;
+	background: rgb( 200, 200, 200, .7 );
+	color: blue;
+	border: 1px solid #aaa;	
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	padding: 50px;
+	margin: 50px;
+}
+.square { 
+    border: 1px solid blue;
+    position: absolute; 
+    background-color: transparent;
+}
+.square .botonera{
+position: absolute;
+right: 0px;
+color: blue;
+background: #aaa;
+border-radius: 1 1 1 1;
+font-size: 8pt;
+border: 1px solid;
+}
+.square .botonera:hover{
+	cursor: pointer;
+}
+.log {
+	position: fixed;
+	top: 0px;
+	right: 0px;
+	width: 600px;
+	//height: 100px;
+	font-size: 7pt;
+	background: #ffaaaa;
+}
+.button {
+	position: fixed;
+	left: 10px;
+	top: 10px;
+}
+.button span{
+	background: rgba( 240, 240, 240, 0.5 );
+	border: 1px solid;
+	border-radius: 5 5 5 5;
+	box-shadow: 4px 4px 10px 2px teal;
+	padding: 5px;
+}
+.button span:hover{
+	cursor:pointer;
+	box-shadow: 4px 4px 10px 2px #fef;
+}
+.canvas {
+	//width: 600px;
+	border: 2px solid;
+	//background: #dde;
+	z-index: 1;
+}
+.canvas textarea {
+	z-index: 1;
+	background-opacity: .1;
+	color: black;
+}
+
+.imagen {
+	z-index:-1;
+}
+</style> 
+
+<body> 
+<div class=cont>
+</div>
+<div class=button>
+<span id=cont>cont</span>
+<span id=cargar>cargar</span>
+<span id=llenar>llenar</span>
+<span id=save>save</span>
+<span id=print>print</span>
+</div><!--button-->
+<div class=canvas>
+<img width=100% class=imagen src=grilla-0_.png>
+</div>
+<div class=log>
+</div>
+</body> 
+<script> 
+$("#llenar").click( llenar );
+$("#save").click( save );
+$("#print").click( print );
+$("#cont").click( function(){ 
+	$(".cont").toggle( 500);
+});
+
+boxdb = new Nedb();   // Create an in-memory only datastore
+var lefttop;
+var wh;
+var dibujando = 0;
+
+$( ".canvas").mousedown( function( ev ){
+	dibujando=1;
+	lefttop= { x: ev.pageX, y: ev.pageY };
+  if( ev.target.tagName.toLowerCase() == 'img' ){
+  	return false;
+  }
+});
+
+$( ".canvas").mouseup( function( ev ){
+	dibujando=0;
+	var wh = { x: ev.pageX - lefttop.x, y: ev.pageY - lefttop.y };
+	if( wh.x > 10 && wh.y > 10 ) {
+		usuariomarcocampo( lefttop, wh );
+	}
+});
+
+function usuariomarcocampo( ltx, whx ){
+	console.log( "umc: " +  ltx.x + " " + ltx.y + " " + whx.x + " " + whx.y );
+
+	var idx = ltx.x + "-" + ltx.y + "-" + whx.x + "-" + whx.y;
+	d = $( "<div id="+idx+"><div class=botonera><span>x</div><input type=text size=20 value='" 
+	  + idx + "'></div>");
+	d.addClass( "square");
+	d.css( { "left": ltx.x + 'px' , "top" : ltx.y + 'px', "width" : whx.x + 'px', "height" :whx.y + 'px' });
+	$(".canvas").append( d );
+	$( d ).find( ".botonera span").click( function(){
+		$(this).parent().parent().remove();
+		boxdb.remove( { lt: { x: ltx.x, y:ltx.y } } );
+		loguear( "REMOVE!");
+		quehayenbase();
+	});
+
+	boxdb.insert( { lt: ltx, wh: whx, xxx: idx } );
+	quehayenbase();
+}
+
+function llenar(){
+	loguear( "llenar");
+	//para cada square, obtener su id, su nombre cargado y actualizar
+	// el nombre cargado usando el id como ubicador del documento en mongo
+	$( ".square").each( function(){
+		var arr = this.id.split("-" );
+		var nomx = $(this).find( "input")[0].value;
+		loguear( "actualizando x y " + arr[0] + " " + arr[1])
+		boxdb.update( { xxx: this.id },
+			{ $set: { "nom": nomx } },
+			{},
+			function( err, numReplaced, upsert ){
+				loguear( "updated " + numReplaced + " docs ,err fue " + err );
+			}
+		)
+	});
+	quehayenbase();
+	
+	$(".square").remove();
+	boxdb.find( {}, function (err, docs) {
+		for( var i=0; i<docs.length; i++ ){
+			d = $( "<textarea></textarea>");
+			d.addClass( "square");
+			d.attr( 'id', docs[i].lt.x + "-" + docs[i].lt.y + "-" + docs[i].wh.x + "-" + docs[i].wh.y);
+			d.css( { "left": docs[i].lt.x + 'px' , "top" : docs[i].lt.y + 'px', "width" : docs[i].wh.x + 'px', "height" :docs[i].wh.y + 'px' });
+			$(".canvas").append( d );
+		}
+ 	});
+
+}
+
+function quehayenbase(){
+	boxdb.find( {}, function (err, docs) {
+		for( var i=0; i<docs.length; i++ ){
+			loguear( "-" + i + ": box en " + docs[i].lt.x + " " + docs[i].lt.y
+	  + " " + docs[i].wh.x + " " + docs[i].wh.y + " nom " + docs[i].nom + " xxx " + docs[i].xxx + "- ");
+		}
+ 	});
+}
+function loguear( que, col ){
+	if( col ){
+		aux="style='color:" + col + "'";
+	}
+	else aux ="";
+	$( ".log" ).append( "<span " + aux + "> " + que + "</span>" );
+}
+
+function print(){
+	$( ".canvas textarea").css( { "border": "0px" } );
+}
+
+function save(){
+loguear( "save");
+	//para cada square, obtener su id, su contenido y actualizar en mongo
+	$( ".square").each( function(){
+		var arr = this.id.split("-" );
+		var tex = $(this)[0].value;
+		loguear( "actualizando x y " + arr[0] + " " + arr[1])
+		boxdb.update( { xxx: this.id },
+			{ $set: { "tex": tex } },
+			{},
+			function( err, numReplaced, upsert ){
+				loguear( "updated " + numReplaced + " docs ,err fue " + err );
+			}
+		)
+	});
+	quehayenbase();
+	
+	boxdb.find( {}, function (err, docs) {
+		for( var i=0; i<docs.length; i++ ){
+			$(".cont").append( JSON.stringify(docs[i]) );
+		}
+ 	});
+}
+
+/*
+var d;
+var posx;
+var posy;
+var initx=false;
+var inity=false;
+
+$(".main").mousemove( function( ev ){
+	posx=0;
+	posy=0; 
+	if (ev.pageX){
+		posx=ev.pageX+window.pageXOffset; 
+		posy=ev.pageY+window.pageYOffset; 
+	} 
+	obj.onmousedown=function(){ 
+		initx=posx;
+		inity=posy; 
+		d = document.createElement('div'); 
+		d.className='square';
+		d.style.left=initx+'px';
+		d.style.top=inity+'px'; 
+		document.getElementsByTagName('body')[0].append(d);
+	} 
+	obj.onmouseup=function(){
+		if( posx - initx > 10 && posy - inity > 10){
+			boxdb.insert( { ltx: initx, lty: inity , w: posx - initx, h: posy - inity } );
+		}
+		initx=false;inity=false;
+	} 
+	if(initx){ 
+		d.style.width=Math.abs(posx-initx)+'px';d.style.height=Math.abs(posy-inity)+'px';
+		d.style.left=posx-initx<0?posx+'px':initx+'px'; 
+		d.style.top=posy-inity<0?posy+'px':inity+'px'; 
+	} 
+});
+*/
+</script>
+</html> 
