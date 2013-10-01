@@ -3,6 +3,15 @@
 <script src="jquery.js"></script>
 <style type="text/css"> 
 
+.glue{
+	height: 20px;
+	widht: 100%;
+}
+body {
+	border: 0px;
+	margin: 0px;
+	padding: 0px;
+}
 #h{
 	display:block;
 	width: 10px;
@@ -60,9 +69,11 @@ border: 1px solid;
 	//height: 100px;
 	font-size: 7pt;
 	background: #ffaaaa;
+	z-index:4;
 }
 .button {
 	position: fixed;
+	z-index:3;
 	left: 10px;
 	top: 10px;
 }
@@ -79,7 +90,10 @@ border: 1px solid;
 }
 .canvas {
 	//width: 600px;
-	border: 2px solid;
+	//height: 1026px;
+	//height: 1500px;
+	//border: 1px solid blue;
+	//position: relative;
 	//background: #dde;
 	z-index: 1;
 }
@@ -92,7 +106,11 @@ border: 1px solid;
 }
 
 .imagen {
+	//position: absolute;
+	//top: 0;
+	//left: 0;
 	z-index:-1;
+	//border: 1px solid;
 }
 </style> 
 
@@ -109,10 +127,18 @@ border: 1px solid;
 <span id=print>print</span>
 </div><!--button-->
 <div class=canvas>
-<img class=imagen src=grilla-0_.png>
-</div>
+<img class=imagen src=grilla1.png>
+<div class=glue></div>
+<img class=imagen src=grilla2.png>
+<div class=glue></div>
+<img class=imagen src=grilla3.png>
+<div class=glue></div>
+<img class=imagen src=grilla4.png>
+<div class=glue></div>
+<img class=imagen src=grilla5.png>
+</div><!--canvas-->
 <div class=log>
-</div>
+</div><!--log-->
 </body> 
 <script> 
 $("#h").click( function(){ 
@@ -147,14 +173,14 @@ $( ".canvas").mouseup( function( ev ){
 	dibujando=0;
 	var wh = { x: ev.pageX - lefttop.x, y: ev.pageY - lefttop.y };
 	if( wh.x > 10 && wh.y > 10 ) {
-		usuariomarcocampo( lefttop, wh );
+		usuariomarcocampo( lefttop, wh, this );
 	}
 });
 
 //-----------------------
 // usuariomarcocampo
 //-----------------------
-function usuariomarcocampo( ltx, whx ){
+function usuariomarcocampo( ltx, whx, el ){
 	loguear( "usuariomarcocampo " + ltx.x + " " + ltx.y );
 	cant++;
 
@@ -163,7 +189,8 @@ function usuariomarcocampo( ltx, whx ){
 	  + idx + "'></div>");
 	d.addClass( "square");
 	d.css( { "left": ltx.x + 'px' , "top" : ltx.y + 'px', "width" : whx.x + 'px', "height" :whx.y + 'px' });
-	$(".canvas").append( d );
+	//$(".canvas").append( d );
+	$( el).append( d );
 	$( d ).find( ".botonera span").click( function(){
 		$(this).parent().parent().remove();
 		boxdb.remove( { lt: { x: ltx.x, y:ltx.y } } );
@@ -293,41 +320,5 @@ function cargar(){
  	});
  	$(".cont").toggle();
 }
-/*
-var d;
-var posx;
-var posy;
-var initx=false;
-var inity=false;
-
-$(".main").mousemove( function( ev ){
-	posx=0;
-	posy=0; 
-	if (ev.pageX){
-		posx=ev.pageX+window.pageXOffset; 
-		posy=ev.pageY+window.pageYOffset; 
-	} 
-	obj.onmousedown=function(){ 
-		initx=posx;
-		inity=posy; 
-		d = document.createElement('div'); 
-		d.className='square';
-		d.style.left=initx+'px';
-		d.style.top=inity+'px'; 
-		document.getElementsByTagName('body')[0].append(d);
-	} 
-	obj.onmouseup=function(){
-		if( posx - initx > 10 && posy - inity > 10){
-			boxdb.insert( { ltx: initx, lty: inity , w: posx - initx, h: posy - inity } );
-		}
-		initx=false;inity=false;
-	} 
-	if(initx){ 
-		d.style.width=Math.abs(posx-initx)+'px';d.style.height=Math.abs(posy-inity)+'px';
-		d.style.left=posx-initx<0?posx+'px':initx+'px'; 
-		d.style.top=posy-inity<0?posy+'px':inity+'px'; 
-	} 
-});
-*/
 </script>
 </html> 
